@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Nebula CDR · Monitor Oikos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=DM+Mono:wght@400;500&display=swap"/>
+<style>
+/* ═══════════════════════════════════════════════════
+   TOKENS & RESET
+═══════════════════════════════════════════════════ */
+:root {
+  --c-bg:        #f4f6fb;
+  --c-surface:   #ffffff;
+  --c-border:    #e4e9f2;
+  --c-text:      #0f172a;
+  --c-muted:     #64748b;
+  --c-subtle:    #94a3b8;
+
+  --c-blue:      #2563eb;
+  --c-blue-l:    #dbeafe;
+  --c-blue-d:    #1d4ed8;
+
+  --c-green:     #16a34a;
+  --c-green-l:   #dcfce7;
+
+  --c-red:       #dc2626;
+  --c-red-l:     #fee2e2;
+
+  --c-amber:     #d97706;
+  --c-amber-l:   #fef3c7;
+
+  --c-violet:    #7c3aed;
+  --c-violet-l:  #ede9fe;
+
+  --c-slate:     #475569;
+  --c-slate-l:   #f1f5f9;
+
+  --radius:      12px;
+  --radius-sm:   8px;
+  --shadow:      0 1px 3px rgba(15,23,42,.07), 0 4px 16px rgba(15,23,42,.06);
+  --shadow-lg:   0 8px 32px rgba(15,23,42,.1);
+  --font:        'DM Sans', sans-serif;
+  --mono:        'DM Mono', monospace;
+}
+
+*,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+html { font-size:14px; }
+body {
+  font-family: var(--font);
+  background: var(--c-bg);
+  color: var(--c-text);
+  min-height: 100vh;
+}
+a { text-decoration:none; color:inherit; }
+
+/* ═══════════════════════════════════════════════════
+   LAYOUT SHELL
+═══════════════════════════════════════════════════ */
+.shell { display:flex; min-height:100vh; }
+
+/* ── Sidebar ────────────────────────────────────── */
+.sidebar {
+  width: 220px;
+  background: var(--c-surface);
+  border-right: 1px solid var(--c-border);
+  display: flex;
+  flex-direction: column;
+  padding: 24px 16px;
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  z-index: 100;
+}
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 8px 24px;
+  border-bottom: 1px solid var(--c-border);
+  margin-bottom: 16px;
+}
+.logo-icon {
+  width: 36px; height: 36px;
+  background: var(--c-blue);
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+}
+.logo-icon svg { color:#fff; width:18px; height:18px; }
+.logo-name { font-weight:700; font-size:1rem; letter-spacing:-.02em; line-height:1.1; }
+.logo-sub  { font-size:.65rem; color:var(--c-muted); font-weight:400; text-transform:uppercase; letter-spacing:.08em; }
+
+.nav-label { font-size:.6rem; font-weight:700; color:var(--c-subtle); text-transform:uppercase; letter-spacing:.1em; padding:0 8px; margin:16px 0 6px; }
+.nav-item {
+  display: flex; align-items:center; gap:10px;
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  font-size:.85rem; font-weight:500;
+  color: var(--c-muted);
+  cursor:pointer;
+  transition: background .15s, color .15s;
+  margin-bottom:2px;
+}
+.nav-item:hover, .nav-item.active {
+  background: var(--c-blue-l);
+  color: var(--c-blue);
+}
+.nav-item svg { width:16px; height:16px; flex-shrink:0; }
+
+.sidebar-footer {
+  margin-top:auto;
+  padding-top:16px;
+  border-top:1px solid var(--c-border);
+}
+.pulse-status {
+  display:flex; align-items:center; gap:8px;
+  font-size:.7rem; font-weight:600;
+  color:var(--c-muted);
+}
+.pulse-dot {
+  width:8px; height:8px; border-radius:50%;
+  background:var(--c-green);
+  animation:pulse-anim 2s infinite;
+}
+.pulse-dot.offline { background:var(--c-red); animation:none; }
+@keyframes pulse-anim {
+  0%,100% { opacity:1; box-shadow:0 0 0 0 rgba(22,163,74,.4); }
+  50%      { opacity:.8; box-shadow:0 0 0 6px rgba(22,163,74,0); }
+}
+
+/* ── Main content ───────────────────────────────── */
+.main { margin-left:220px; flex:1; }
+
+/* ── Topbar ─────────────────────────────────────── */
+.topbar {
+  background: var(--c-surface);
+  border-bottom: 1px solid var(--c-border);
+  padding: 14px 28px;
+  display:flex; align-items:center; gap:16px;
+  position:sticky; top:0; z-index:90;
+}
+.topbar-title { font-size:1rem; font-weight:700; flex:1; }
+.topbar-time { font-family:var(--mono); font-size:.75rem; color:var(--c-muted); }
+.btn {
+  display:inline-flex; align-items:center; gap:6px;
+  padding:7px 14px; border-radius:var(--radius-sm);
+  font-family:var(--font); font-size:.8rem; font-weight:600;
+  cursor:pointer; border:none; transition:all .15s;
+}
+.btn-primary { background:var(--c-blue); color:#fff; }
+.btn-primary:hover { background:var(--c-blue-d); }
+.btn-ghost { background:transparent; color:var(--c-muted); border:1px solid var(--c-border); }
+.btn-ghost:hover { background:var(--c-slate-l); color:var(--c-text); }
+.btn svg { width:14px; height:14px; }
+
+/* ── Filters bar ────────────────────────────────── */
+.filters {
+  background:var(--c-surface);
+  border-bottom:1px solid var(--c-border);
+  padding:12px 28px;
+  display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+}
+.filter-group { display:flex; align-items:center; gap:6px; }
+.filter-label { font-size:.7rem; font-weight:700; color:var(--c-subtle); text-transform:uppercase; letter-spacing:.06em; }
+.inp {
+  padding:6px 10px;
+  border:1px solid var(--c-border);
+  border-radius:var(--radius-sm);
+  font-family:var(--font);
+  font-size:.8rem;
+  color:var(--c-text);
+  background:var(--c-surface);
+  outline:none;
+  transition:border-color .15s;
+}
+.inp:focus { border-color:var(--c-blue); }
+select.inp { cursor:pointer; }
+
+/* ── Content padding ────────────────────────────── */
+.content { padding:24px 28px; }
+
+/* ═══════════════════════════════════════════════════
+   KPI CARDS
+═══════════════════════════════════════════════════ */
+.kpi-grid {
+  display:grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap:14px;
+  margin-bottom:22px;
+}
+.kpi {
+  background:var(--c-surface);
+  border:1px solid var(--c-border);
+  border-radius:var(--radius);
+  padding:18px 20px;
+  box-shadow:var(--shadow);
+  position:relative;
+  overflow:hidden;
+  transition:transform .15s, box-shadow .15s;
+}
+.kpi:hover { transform:translateY(-2px); box-shadow:var(--shadow-lg); }
+.kpi-accent {
+  position:absolute; top:0; left:0; right:0;
+  height:3px; border-radius:var(--radius) var(--radius) 0 0;
+}
+.kpi-icon { width:32px; height:32px; border-radius:8px; display:grid; place-items:center; margin-bottom:10px; }
+.kpi-icon svg { width:16px; height:16px; }
+.kpi-label { font-size:.65rem; font-weight:700; color:var(--c-muted); text-transform:uppercase; letter-spacing:.08em; margin-bottom:4px; }
+.kpi-value { font-size:1.9rem; font-weight:800; letter-spacing:-.04em; line-height:1; }
+.kpi-sub { font-size:.7rem; color:var(--c-muted); margin-top:4px; }
+
+/* KPI color variants */
+.kpi-blue .kpi-accent   { background:var(--c-blue); }
+.kpi-blue .kpi-icon     { background:var(--c-blue-l); color:var(--c-blue); }
+.kpi-blue .kpi-value    { color:var(--c-blue); }
+
+.kpi-green .kpi-accent  { background:var(--c-green); }
+.kpi-green .kpi-icon    { background:var(--c-green-l); color:var(--c-green); }
+.kpi-green .kpi-value   { color:var(--c-green); }
+
+.kpi-red .kpi-accent    { background:var(--c-red); }
+.kpi-red .kpi-icon      { background:var(--c-red-l); color:var(--c-red); }
+.kpi-red .kpi-value     { color:var(--c-red); }
+
+.kpi-amber .kpi-accent  { background:var(--c-amber); }
+.kpi-amber .kpi-icon    { background:var(--c-amber-l); color:var(--c-amber); }
+.kpi-amber .kpi-value   { color:var(--c-amber); }
+
+.kpi-violet .kpi-accent { background:var(--c-violet); }
+.kpi-violet .kpi-icon   { background:var(--c-violet-l); color:var(--c-violet); }
+.kpi-violet .kpi-value  { color:var(--c-violet); }
+
+.kpi-slate .kpi-accent  { background:var(--c-slate); }
+.kpi-slate .kpi-icon    { background:var(--c-slate-l); color:var(--c-slate); }
+.kpi-slate .kpi-value   { color:var(--c-slate); }
+
+/* ═══════════════════════════════════════════════════
+   ALERTS STRIP
+═══════════════════════════════════════════════════ */
+.alerts-strip {
+  display:flex; gap:10px; flex-wrap:wrap;
+  margin-bottom:22px;
+}
+.alert-badge {
+  display:inline-flex; align-items:center; gap:6px;
+  padding:7px 14px;
+  border-radius:var(--radius-sm);
+  font-size:.75rem; font-weight:600;
+  border:1px solid;
+  animation:alert-in .3s ease both;
+}
+@keyframes alert-in { from{opacity:0;transform:translateY(-4px)} to{opacity:1;transform:none} }
+.alert-badge svg { width:13px; height:13px; }
+.alert-warn { background:var(--c-amber-l); color:var(--c-amber); border-color:#fcd34d; }
+.alert-danger{ background:var(--c-red-l);  color:var(--c-red);   border-color:#fca5a5; }
+.alert-info { background:var(--c-blue-l);  color:var(--c-blue);  border-color:#93c5fd; }
+.alert-ok   { background:var(--c-green-l); color:var(--c-green); border-color:#86efac; }
+
+/* ═══════════════════════════════════════════════════
+   TWO-COLUMN ROW: Agents table + Ext breakdown
+═══════════════════════════════════════════════════ */
+.row-2 { display:grid; grid-template-columns:1fr 340px; gap:16px; margin-bottom:22px; }
+@media(max-width:1100px){ .row-2 { grid-template-columns:1fr; } }
+
+/* ── Panel ──────────────────────────────────────── */
+.panel {
+  background:var(--c-surface);
+  border:1px solid var(--c-border);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  overflow:hidden;
+}
+.panel-header {
+  padding:16px 20px;
+  border-bottom:1px solid var(--c-border);
+  display:flex; align-items:center; justify-content:space-between;
+}
+.panel-title { font-size:.85rem; font-weight:700; }
+.panel-sub { font-size:.7rem; color:var(--c-muted); }
+
+/* ── Agents Table ───────────────────────────────── */
+.tbl { width:100%; border-collapse:collapse; }
+.tbl thead th {
+  padding:10px 14px;
+  font-size:.62rem; font-weight:700;
+  color:var(--c-muted);
+  text-transform:uppercase; letter-spacing:.07em;
+  background:var(--c-slate-l);
+  text-align:left;
+  white-space:nowrap;
+}
+.tbl tbody tr { border-bottom:1px solid var(--c-border); transition:background .1s; }
+.tbl tbody tr:last-child { border-bottom:none; }
+.tbl tbody tr:hover { background:var(--c-slate-l); }
+.tbl td { padding:10px 14px; font-size:.8rem; vertical-align:middle; }
+
+.tag {
+  display:inline-flex; align-items:center; gap:4px;
+  padding:3px 8px; border-radius:4px;
+  font-size:.62rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em;
+}
+.tag-in   { background:var(--c-blue-l);   color:var(--c-blue);   }
+.tag-out  { background:var(--c-violet-l); color:var(--c-violet); }
+.tag-int  { background:var(--c-slate-l);  color:var(--c-slate);  }
+.tag-ans  { background:var(--c-green-l);  color:var(--c-green);  }
+.tag-no   { background:var(--c-red-l);    color:var(--c-red);    }
+.tag-busy { background:var(--c-amber-l);  color:var(--c-amber);  }
+.tag-fail { background:#fef2f2;           color:#991b1b;          }
+
+/* Efectividad bar */
+.eff-bar { width:80px; height:5px; background:var(--c-border); border-radius:99px; overflow:hidden; }
+.eff-fill { height:100%; border-radius:99px; transition:width .4s ease; }
+
+/* ── Extension breakdown cards ──────────────────── */
+.ext-list { padding:12px; overflow-y:auto; max-height:460px; }
+.ext-card {
+  border:1px solid var(--c-border);
+  border-radius:var(--radius-sm);
+  padding:12px 14px;
+  margin-bottom:8px;
+  transition:border-color .15s, box-shadow .15s;
+  position:relative;
+  cursor:default;
+}
+.ext-card:hover { border-color:var(--c-blue); box-shadow:0 0 0 3px var(--c-blue-l); }
+.ext-card.alert-ext { border-color:#fca5a5; background:#fff5f5; }
+.ext-name { font-weight:600; font-size:.82rem; margin-bottom:2px; }
+.ext-meta { font-size:.68rem; color:var(--c-muted); margin-bottom:8px; }
+.ext-stats { display:flex; gap:8px; }
+.ext-stat { text-align:center; flex:1; }
+.ext-stat-val { font-size:.95rem; font-weight:700; }
+.ext-stat-lbl { font-size:.6rem; color:var(--c-muted); text-transform:uppercase; letter-spacing:.05em; }
+.ext-eff-row { display:flex; align-items:center; gap:8px; margin-top:8px; }
+.ext-eff-bar { flex:1; height:4px; background:var(--c-border); border-radius:99px; overflow:hidden; }
+.ext-eff-fill { height:100%; border-radius:99px; }
+.ext-eff-pct { font-size:.7rem; font-weight:700; color:var(--c-muted); min-width:32px; text-align:right; }
+.ext-badge {
+  position:absolute; top:10px; right:10px;
+  font-size:.58rem; font-weight:700; text-transform:uppercase;
+  padding:2px 6px; border-radius:3px;
+}
+.ext-badge-warn { background:var(--c-red-l); color:var(--c-red); }
+.ext-badge-ok   { background:var(--c-green-l); color:var(--c-green); }
+
+/* ═══════════════════════════════════════════════════
+   CDR LOG TABLE
+═══════════════════════════════════════════════════ */
+.log-panel { background:var(--c-surface); border:1px solid var(--c-border); border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden; }
+.log-tbl { width:100%; border-collapse:collapse; }
+.log-tbl thead th {
+  padding:10px 14px;
+  font-size:.6rem; font-weight:700;
+  color:var(--c-muted); text-transform:uppercase; letter-spacing:.08em;
+  background:var(--c-slate-l);
+  text-align:left; white-space:nowrap;
+}
+.log-tbl tbody tr { border-bottom:1px solid var(--c-border); transition:background .1s; }
+.log-tbl tbody tr:last-child { border-bottom:none; }
+.log-tbl tbody tr:hover { background:var(--c-slate-l); }
+.log-tbl td { padding:9px 14px; font-size:.78rem; vertical-align:middle; }
+.log-tbl td.mono { font-family:var(--mono); font-size:.72rem; }
+.log-tbl td.asesor-name { font-weight:600; }
+.log-tbl td.asesor-ext  { font-size:.65rem; color:var(--c-muted); font-family:var(--mono); }
+.log-empty { padding:48px; text-align:center; color:var(--c-subtle); font-size:.85rem; }
+
+/* ── Skeleton loading ───────────────────────────── */
+@keyframes shimmer {
+  0%   { background-position:-400px 0 }
+  100% { background-position:400px 0 }
+}
+.skel {
+  height:14px; border-radius:4px;
+  background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);
+  background-size:800px 100%;
+  animation:shimmer 1.4s infinite;
+}
+.skel-row td { padding:14px; }
+
+/* ── Countdown ring ─────────────────────────────── */
+.countdown-wrap { display:flex; align-items:center; gap:8px; }
+.countdown-ring { width:28px; height:28px; transform:rotate(-90deg); }
+.countdown-ring circle {
+  fill:none;
+  stroke:var(--c-border);
+  stroke-width:3;
+}
+.countdown-ring .progress {
+  stroke:var(--c-blue);
+  stroke-linecap:round;
+  stroke-dasharray:66;
+  stroke-dashoffset:0;
+  transition:stroke-dashoffset 1s linear;
+}
+.countdown-text { font-size:.75rem; font-weight:600; color:var(--c-muted); font-family:var(--mono); }
+
+/* ═══════════════════════════════════════════════════
+   MISC
+═══════════════════════════════════════════════════ */
+.section-title { font-size:.7rem; font-weight:700; color:var(--c-muted); text-transform:uppercase; letter-spacing:.1em; margin-bottom:10px; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width:5px; height:5px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:#cbd5e1; border-radius:99px; }
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════
+     SIDEBAR
+════════════════════════════════════════════════ -->
+<div class="shell">
+<aside class="sidebar">
+  <div class="logo">
+    <div class="logo-icon">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z"/></svg>
+    </div>
+    <div>
+      <div class="logo-name">Nebula CDR</div>
+      <div class="logo-sub">Monitor Oikos</div>
+    </div>
+  </div>
+
+  <div class="nav-label">Vistas</div>
+  <div class="nav-item active" id="nav-live">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><circle cx="12" cy="12" r="3"/><path stroke-linecap="round" stroke-linejoin="round" d="M3 12h2m14 0h2M12 3v2m0 14v2M5.636 5.636l1.414 1.414M16.95 16.95l1.414 1.414M5.636 18.364l1.414-1.414M16.95 7.05l1.414-1.414"/></svg>
+    Tiempo Real
+  </div>
+  <div class="nav-item" id="nav-hist" onclick="alert('Vista histórica: usa los filtros de fecha')">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+    Histórico
+  </div>
+
+  <div class="nav-label">Filtros rápidos</div>
+  <div class="nav-item" onclick="setFiltroRapido('tipo','INBOUND')">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 4.5l-15 15M19.5 19.5H4.5V4.5"/></svg>
+    Solo Inbound
+  </div>
+  <div class="nav-item" onclick="setFiltroRapido('tipo','OUTBOUND')">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 19.5l15-15M4.5 4.5H19.5v15"/></svg>
+    Solo Outbound
+  </div>
+  <div class="nav-item" onclick="setFiltroRapido('estado','ANSWERED')">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+    Solo Atendidas
+  </div>
+  <div class="nav-item" onclick="setFiltroRapido('estado','NO ANSWER')">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
+    Sin Atender
+  </div>
+
+  <div class="sidebar-footer">
+    <div class="pulse-status">
+      <div class="pulse-dot" id="pulse"></div>
+      <span id="conn-label">Conectado</span>
+    </div>
+    <div style="font-size:.65rem;color:var(--c-subtle);margin-top:6px;font-family:var(--mono)">
+      Ciclo: <span id="cycle-info">60s</span>
+    </div>
+  </div>
+</aside>
+
+<!-- ════════════════════════════════════════════════
+     MAIN
+════════════════════════════════════════════════ -->
+<div class="main">
+  <!-- Topbar -->
+  <div class="topbar">
+    <div class="topbar-title">Monitor de Actividad · Call Center</div>
+
+    <!-- Countdown ring -->
+    <div class="countdown-wrap">
+      <svg class="countdown-ring" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="10"/>
+        <circle class="progress" id="ring-progress" cx="12" cy="12" r="10" stroke-dashoffset="66"/>
+      </svg>
+      <span class="countdown-text" id="countdown-txt">60s</span>
+    </div>
+
+    <div class="topbar-time" id="clock">--:--:--</div>
+
+    <button class="btn btn-ghost" onclick="refreshNow()">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" id="refresh-icon"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
+      Actualizar
+    </button>
+    <button class="btn btn-primary" onclick="exportCSV()">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
+      Exportar CSV
+    </button>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters">
+    <div class="filter-group">
+      <span class="filter-label">Desde</span>
+      <input class="inp" type="date" id="f-desde"/>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">Hasta</span>
+      <input class="inp" type="date" id="f-hasta"/>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">Sala</span>
+      <select class="inp" id="f-sala">
+        <option value="">Todas</option>
+        <option>Cartera</option>
+        <option>Escrituración</option>
+        <option>Tramites</option>
+        <option>Contact Center</option>
+        <option>Subsidios</option>
+        <option>Validacion</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">Tipo</span>
+      <select class="inp" id="f-tipo">
+        <option value="">Todos</option>
+        <option value="INBOUND">Inbound</option>
+        <option value="OUTBOUND">Outbound</option>
+        <option value="INTERNA">Interna</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">Estado</span>
+      <select class="inp" id="f-estado">
+        <option value="">Todos</option>
+        <option value="ANSWERED">Answered</option>
+        <option value="NO ANSWER">No Answer</option>
+        <option value="BUSY">Busy</option>
+        <option value="FAILED">Failed</option>
+      </select>
+    </div>
+    <button class="btn btn-primary" onclick="applyFiltersAndFetch()" style="margin-left:auto">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z"/></svg>
+      Filtrar
+    </button>
+    <button class="btn btn-ghost" onclick="clearFilters()">Limpiar</button>
+  </div>
+
+  <!-- Content -->
+  <div class="content">
+
+    <!-- ALERTS -->
+    <div class="section-title">Alertas del sistema</div>
+    <div class="alerts-strip" id="alerts-strip">
+      <span class="alert-badge alert-info">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"/></svg>
+        Cargando datos…
+      </span>
+    </div>
+
+    <!-- KPI CARDS -->
+    <div class="kpi-grid" id="kpi-grid">
+      <!-- Rendered by JS -->
+      <div class="kpi kpi-blue"><div class="kpi-accent"></div><div class="skel" style="width:60%;margin-bottom:8px"></div><div class="skel" style="width:40%;height:28px"></div></div>
+      <div class="kpi kpi-green"><div class="kpi-accent"></div><div class="skel" style="width:60%;margin-bottom:8px"></div><div class="skel" style="width:40%;height:28px"></div></div>
+      <div class="kpi kpi-red"><div class="kpi-accent"></div><div class="skel" style="width:60%;margin-bottom:8px"></div><div class="skel" style="width:40%;height:28px"></div></div>
+      <div class="kpi kpi-amber"><div class="kpi-accent"></div><div class="skel" style="width:60%;margin-bottom:8px"></div><div class="skel" style="width:40%;height:28px"></div></div>
+      <div class="kpi kpi-violet"><div class="kpi-accent"></div><div class="skel" style="width:60%;margin-bottom:8px"></div><div class="skel" style="width:40%;height:28px"></div></div>
+      <div class="kpi kpi-slate"><div class="kpi-accent"></div><div class="skel" style="width:60%;margin-bottom:8px"></div><div class="skel" style="width:40%;height:28px"></div></div>
+    </div>
+
+    <!-- Row 2: agents + ext breakdown -->
+    <div class="row-2">
+      <!-- Agents -->
+      <div class="panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-title">Rendimiento por Asesor</div>
+            <div class="panel-sub">Efectividad y saltos de gestión por extensión</div>
+          </div>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="tbl" id="agents-tbl">
+            <thead>
+              <tr>
+                <th>Asesor</th>
+                <th>Sala</th>
+                <th>Ext.</th>
+                <th>Total</th>
+                <th>Atendidas</th>
+                <th>No Contest.</th>
+                <th>Dur. Prom</th>
+                <th>Efectividad</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody id="agents-body">
+              <tr class="skel-row"><td colspan="9"><div class="skel"></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Ext breakdown -->
+      <div class="panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-title">Extensiones</div>
+            <div class="panel-sub">Resumen por línea</div>
+          </div>
+        </div>
+        <div class="ext-list" id="ext-list">
+          <div style="padding:24px;text-align:center;color:var(--c-subtle)">Cargando…</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Log table -->
+    <div class="section-title">Registro CDR completo</div>
+    <div class="log-panel">
+      <div class="panel-header">
+        <div>
+          <div class="panel-title">Últimas llamadas</div>
+          <div class="panel-sub" id="log-subtitle">Actualización cada 60 segundos</div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <input class="inp" type="text" id="search-inp" placeholder="Buscar asesor, extensión…" style="width:200px" oninput="renderLogTable()"/>
+        </div>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="log-tbl">
+          <thead>
+            <tr>
+              <th>Hora</th>
+              <th>Fecha</th>
+              <th>Asesor</th>
+              <th>Sala</th>
+              <th>Ext.</th>
+              <th>Origen</th>
+              <th>Destino</th>
+              <th>Duración</th>
+              <th>Tipo</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody id="log-body">
+            <tr class="skel-row"><td colspan="10"><div class="skel"></div></td></tr>
+            <tr class="skel-row"><td colspan="10"><div class="skel" style="width:70%"></div></td></tr>
+            <tr class="skel-row"><td colspan="10"><div class="skel" style="width:85%"></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+</div><!-- /shell -->
+
+<!-- ════════════════════════════════════════════════
+     JAVASCRIPT
+════════════════════════════════════════════════ -->
+<script>
+// ──────────────────────────────────────────────
+// CONFIGURACIÓN — reemplaza con tu URL de Apps Script
+// ──────────────────────────────────────────────
+const API = "https://script.google.com/macros/s/AKfycbyZ7js4O0aozW5qeBJ_0a0F5qfJzau-KpVUeDn3qWaWorf7Wq8YD0j3MkL1TjRB1goH/exec";
+
+// ── Umbrales Call Center ──────────────────────
+const CFG = {
+  EFECTIVIDAD_MINIMA:  60,   // % por debajo es alerta
+  DUR_MAX_SEG:         600,  // duración excesiva > 10 min
+  DUR_MIN_ATENDIDA:    10,   // llamada "fantasma" si < 10s
+  NO_ANSWER_MAX:       5,    // más de N no-contest seguidos → alerta
+  CICLO_SEG:           60    // segundos entre actualizaciones
+};
+
+// ── Estado global ─────────────────────────────
+let _data        = null;
+let _countdown   = CFG.CICLO_SEG;
+let _timer       = null;
+let _clockTimer  = null;
+const CIRCUM     = 2 * Math.PI * 10; // 62.83
+
+// ── Arranque ──────────────────────────────────
+window.addEventListener("DOMContentLoaded", () => {
+  setTodayDates();
+  fetchData();
+  startClock();
+  startCountdown();
+});
+
+function setTodayDates() {
+  const today = new Date().toISOString().split("T")[0];
+  document.getElementById("f-desde").value = today;
+  document.getElementById("f-hasta").value = today;
+}
+
+// ─────────────────────────────────────────────
+//  FETCH
+// ─────────────────────────────────────────────
+async function fetchData() {
+  const desde  = document.getElementById("f-desde").value;
+  const hasta  = document.getElementById("f-hasta").value;
+  const sala   = document.getElementById("f-sala").value;
+  const tipo   = document.getElementById("f-tipo").value;
+  const estado = document.getElementById("f-estado").value;
+
+  let url = API;
+  const params = new URLSearchParams();
+  if (desde)  params.set("desde",  desde);
+  if (hasta)  params.set("hasta",  hasta);
+  if (sala)   params.set("sala",   sala);
+  if (tipo)   params.set("tipo",   tipo);
+  if (estado) params.set("estado", estado);
+  if ([...params].length) url += "?" + params.toString();
+
+  try {
+    const res  = await fetch(url, { cache: "no-store" });
+    const json = await res.json();
+    _data = json;
+    setOnline(true);
+    render();
+  } catch(e) {
+    setOnline(false);
+    showAlerts([{ tipo:"danger", txt:"Error de conexión con la API. Reintentando…" }]);
+    console.error("Fetch error:", e);
+  }
+}
+
+function applyFiltersAndFetch() { fetchData(); }
+function clearFilters() {
+  setTodayDates();
+  document.getElementById("f-sala").value   = "";
+  document.getElementById("f-tipo").value   = "";
+  document.getElementById("f-estado").value = "";
+  fetchData();
+}
+function refreshNow() {
+  const icon = document.getElementById("refresh-icon");
+  icon.style.animation = "spin .5s linear";
+  setTimeout(() => icon.style.animation = "", 600);
+  fetchData();
+  resetCountdown();
+}
+function setFiltroRapido(key, val) {
+  if (key === "tipo")   document.getElementById("f-tipo").value   = val;
+  if (key === "estado") document.getElementById("f-estado").value = val;
+  applyFiltersAndFetch();
+}
+
+// ─────────────────────────────────────────────
+//  RENDER PRINCIPAL
+// ─────────────────────────────────────────────
+function render() {
+  if (!_data) return;
+  const { resumen, resumenPorExtension, registros, ultimaActualizacion } = _data;
+
+  renderKPIs(resumen);
+  renderAlerts(resumen, resumenPorExtension);
+  renderAgentsTable(resumenPorExtension);
+  renderExtCards(resumenPorExtension);
+  renderLogTable();
+
+  document.getElementById("log-subtitle").textContent =
+    "Última act.: " + new Date(ultimaActualizacion).toLocaleTimeString("es-CO") +
+    " · " + registros.length + " registros";
+}
+
+// ─────────────────────────────────────────────
+//  KPI CARDS
+// ─────────────────────────────────────────────
+function renderKPIs(r) {
+  const grid = document.getElementById("kpi-grid");
+  if (!r) return;
+  const durMin = Math.floor(r.duracionPromedioSeg / 60);
+  const durSec = r.duracionPromedioSeg % 60;
+
+  const cards = [
+    { color:"blue",   icon:iconPhone,   label:"Total Llamadas",    val: r.total,      sub: "hoy según filtro" },
+    { color:"green",  icon:iconCheck,   label:"Atendidas",         val: r.answered,   sub: pct(r.answered, r.total) + "% del total" },
+    { color:"red",    icon:iconX,       label:"No Contestadas",    val: r.noAnswer,   sub: pct(r.noAnswer, r.total) + "% del total" },
+    { color:"amber",  icon:iconZap,     label:"Efectividad",       val: r.efectividad + "%", sub: r.busy + " en espera / " + r.failed + " fallidas" },
+    { color:"violet", icon:iconInbound, label:"Inbound",           val: r.inbound,    sub: "vs " + r.outbound + " outbound" },
+    { color:"slate",  icon:iconClock,   label:"Dur. Promedio",     val: durMin + "m " + durSec + "s", sub: "llamadas atendidas" },
+  ];
+
+  grid.innerHTML = cards.map(c => `
+    <div class="kpi kpi-${c.color}">
+      <div class="kpi-accent"></div>
+      <div class="kpi-icon">${c.icon}</div>
+      <div class="kpi-label">${c.label}</div>
+      <div class="kpi-value">${c.val}</div>
+      <div class="kpi-sub">${c.sub}</div>
+    </div>
+  `).join("");
+}
+
+// ─────────────────────────────────────────────
+//  ALERTS
+// ─────────────────────────────────────────────
+function renderAlerts(r, extList) {
+  const alerts = [];
+
+  if (!r || r.total === 0) {
+    alerts.push({ tipo:"info", txt:"Sin datos para el rango seleccionado." });
+    showAlerts(alerts); return;
+  }
+
+  // Efectividad global baja
+  if (r.efectividad < CFG.EFECTIVIDAD_MINIMA) {
+    alerts.push({ tipo:"danger", txt:`⚠ Efectividad global ${r.efectividad}% — por debajo del mínimo (${CFG.EFECTIVIDAD_MINIMA}%)` });
+  } else {
+    alerts.push({ tipo:"ok", txt:`✓ Efectividad global: ${r.efectividad}%` });
+  }
+
+  // Asesores sin llamadas (extensiones conocidas con 0 registros)
+  if (extList) {
+    const sinActividad = EXTENSIONES_CONOCIDAS.filter(e => !extList.find(x => x.extension === e));
+    if (sinActividad.length > 0) {
+      alerts.push({ tipo:"warn", txt:`Sin actividad registrada: extensiones ${sinActividad.join(", ")}` });
+    }
+
+    // Efectividad individual baja
+    extList.forEach(e => {
+      if (e.total >= 3 && e.efectividad < CFG.EFECTIVIDAD_MINIMA) {
+        alerts.push({ tipo:"warn", txt:`Ext ${e.extension} · ${e.asesor} — efectividad ${e.efectividad}%` });
+      }
+    });
+  }
+
+  // Llamadas fallidas altas
+  if (r.failed > 0) {
+    alerts.push({ tipo:"warn", txt:`${r.failed} llamadas en estado FAILED detectadas` });
+  }
+
+  showAlerts(alerts);
+}
+
+function showAlerts(alerts) {
+  const strip = document.getElementById("alerts-strip");
+  strip.innerHTML = alerts.map(a => `
+    <span class="alert-badge alert-${a.tipo}">
+      ${a.tipo === "danger" ? iconAlert : a.tipo === "warn" ? iconWarn : a.tipo === "ok" ? iconCheck : iconInfo}
+      ${a.txt}
+    </span>
+  `).join("");
+}
+
+// ─────────────────────────────────────────────
+//  AGENTS TABLE
+// ─────────────────────────────────────────────
+function renderAgentsTable(extList) {
+  const tbody = document.getElementById("agents-body");
+  if (!extList || extList.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="9" class="log-empty">Sin datos</td></tr>`;
+    return;
+  }
+
+  // Ordenar por total desc
+  const sorted = [...extList].sort((a, b) => b.total - a.total);
+
+  tbody.innerHTML = sorted.map(e => {
+    const effColor = e.efectividad >= 80 ? "var(--c-green)"
+                   : e.efectividad >= 60 ? "var(--c-amber)"
+                   : "var(--c-red)";
+    const durStr = e.durPromExt > 0
+      ? Math.floor(e.durPromExt/60) + "m " + (e.durPromExt%60) + "s"
+      : "—";
+    const alertaExt = e.efectividad < CFG.EFECTIVIDAD_MINIMA && e.total >= 3;
+    const statusBadge = alertaExt
+      ? `<span class="tag tag-no">⚠ Alerta</span>`
+      : `<span class="tag tag-ans">✓ OK</span>`;
+
+    return `
+      <tr>
+        <td><div class="asesor-name">${e.asesor}</div></td>
+        <td><span style="font-size:.7rem;color:var(--c-muted)">${e.sala || "—"}</span></td>
+        <td class="mono">${e.extension}</td>
+        <td><strong>${e.total}</strong></td>
+        <td><span style="color:var(--c-green);font-weight:700">${e.answered}</span></td>
+        <td><span style="color:var(--c-red);font-weight:700">${e.noAnswer}</span></td>
+        <td class="mono">${durStr}</td>
+        <td>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div class="eff-bar"><div class="eff-fill" style="width:${e.efectividad}%;background:${effColor}"></div></div>
+            <span style="font-size:.75rem;font-weight:700;color:${effColor}">${e.efectividad}%</span>
+          </div>
+        </td>
+        <td>${statusBadge}</td>
+      </tr>`;
+  }).join("");
+}
+
+// ─────────────────────────────────────────────
+//  EXT CARDS
+// ─────────────────────────────────────────────
+function renderExtCards(extList) {
+  const cont = document.getElementById("ext-list");
+  if (!extList || extList.length === 0) {
+    cont.innerHTML = `<div style="padding:24px;text-align:center;color:var(--c-subtle)">Sin datos</div>`;
+    return;
+  }
+
+  const sorted = [...extList].sort((a, b) => b.total - a.total);
+  cont.innerHTML = sorted.map(e => {
+    const alerta = e.efectividad < CFG.EFECTIVIDAD_MINIMA && e.total >= 3;
+    const effColor = e.efectividad >= 80 ? "#16a34a"
+                   : e.efectividad >= 60 ? "#d97706"
+                   : "#dc2626";
+    return `
+      <div class="ext-card ${alerta ? "alert-ext" : ""}">
+        ${alerta
+          ? `<span class="ext-badge ext-badge-warn">⚠ Baja efectividad</span>`
+          : `<span class="ext-badge ext-badge-ok">✓ OK</span>`}
+        <div class="ext-name">${e.asesor}</div>
+        <div class="ext-meta">Ext. ${e.extension} · ${e.sala}</div>
+        <div class="ext-stats">
+          <div class="ext-stat">
+            <div class="ext-stat-val" style="color:var(--c-blue)">${e.total}</div>
+            <div class="ext-stat-lbl">Total</div>
+          </div>
+          <div class="ext-stat">
+            <div class="ext-stat-val" style="color:var(--c-green)">${e.answered}</div>
+            <div class="ext-stat-lbl">Atend.</div>
+          </div>
+          <div class="ext-stat">
+            <div class="ext-stat-val" style="color:var(--c-red)">${e.noAnswer}</div>
+            <div class="ext-stat-lbl">No ans.</div>
+          </div>
+        </div>
+        <div class="ext-eff-row">
+          <div class="ext-eff-bar"><div class="ext-eff-fill" style="width:${e.efectividad}%;background:${effColor}"></div></div>
+          <div class="ext-eff-pct" style="color:${effColor}">${e.efectividad}%</div>
+        </div>
+      </div>`;
+  }).join("");
+}
+
+// ─────────────────────────────────────────────
+//  LOG TABLE
+// ─────────────────────────────────────────────
+function renderLogTable() {
+  const tbody  = document.getElementById("log-body");
+  const q      = (document.getElementById("search-inp")?.value || "").toLowerCase();
+  if (!_data || !_data.registros) {
+    tbody.innerHTML = `<tr><td colspan="10" class="log-empty">Sin datos</td></tr>`;
+    return;
+  }
+
+  let rows = _data.registros;
+  if (q) {
+    rows = rows.filter(r =>
+      r.asesor.toLowerCase().includes(q) ||
+      r.extension.includes(q) ||
+      r.origen.includes(q) ||
+      r.destino.includes(q) ||
+      r.sala.toLowerCase().includes(q)
+    );
+  }
+
+  if (rows.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="10" class="log-empty">Sin resultados</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = rows.map(r => {
+    const tipoTag = r.tipoLlamada === "INBOUND"  ? `<span class="tag tag-in">↙ Inbound</span>`
+                  : r.tipoLlamada === "OUTBOUND" ? `<span class="tag tag-out">↗ Outbound</span>`
+                  : `<span class="tag tag-int">⇄ Interna</span>`;
+
+    const estTag = r.estado === "ANSWERED"  ? `<span class="tag tag-ans">Atendida</span>`
+                 : r.estado === "NO ANSWER" ? `<span class="tag tag-no">No contest.</span>`
+                 : r.estado === "BUSY"      ? `<span class="tag tag-busy">Ocupado</span>`
+                 : `<span class="tag tag-fail">Fallida</span>`;
+
+    const durStr = r.duracion > 0
+      ? Math.floor(r.duracion/60) + "m " + (r.duracion%60) + "s"
+      : "—";
+
+    // Resaltar llamadas con duración sospechosa
+    const rowAlert = (r.estado === "ANSWERED" && r.duracion < CFG.DUR_MIN_ATENDIDA)
+      ? "style='background:#fff7ed'"
+      : (r.duracion > CFG.DUR_MAX_SEG ? "style='background:#fef2f2'" : "");
+
+    return `
+      <tr ${rowAlert}>
+        <td class="mono">${r.hora}</td>
+        <td class="mono">${r.fecha}</td>
+        <td>
+          <div class="asesor-name">${r.asesor}</div>
+          <div class="asesor-ext">${r.sala}</div>
+        </td>
+        <td style="font-size:.72rem;color:var(--c-muted)">${r.sala}</td>
+        <td class="mono">${r.extension}</td>
+        <td class="mono" style="color:var(--c-muted)">${r.origen}</td>
+        <td class="mono" style="color:var(--c-muted)">${r.destino}</td>
+        <td class="mono">${durStr}</td>
+        <td>${tipoTag}</td>
+        <td>${estTag}</td>
+      </tr>`;
+  }).join("");
+}
+
+// ─────────────────────────────────────────────
+//  COUNTDOWN & CLOCK
+// ─────────────────────────────────────────────
+function startCountdown() {
+  resetCountdown();
+  _timer = setInterval(() => {
+    _countdown--;
+    if (_countdown <= 0) {
+      _countdown = CFG.CICLO_SEG;
+      fetchData();
+    }
+    updateCountdownUI();
+  }, 1000);
+}
+function resetCountdown() {
+  _countdown = CFG.CICLO_SEG;
+  updateCountdownUI();
+}
+function updateCountdownUI() {
+  document.getElementById("countdown-txt").textContent = _countdown + "s";
+  const offset = CIRCUM - (CIRCUM * _countdown / CFG.CICLO_SEG);
+  document.getElementById("ring-progress").style.strokeDashoffset = offset;
+}
+function startClock() {
+  function tick() {
+    document.getElementById("clock").textContent =
+      new Date().toLocaleTimeString("es-CO", { hour:"2-digit", minute:"2-digit", second:"2-digit" });
+  }
+  tick();
+  setInterval(tick, 1000);
+}
+
+// ─────────────────────────────────────────────
+//  ONLINE/OFFLINE
+// ─────────────────────────────────────────────
+function setOnline(ok) {
+  const dot   = document.getElementById("pulse");
+  const label = document.getElementById("conn-label");
+  dot.className = "pulse-dot" + (ok ? "" : " offline");
+  label.textContent = ok ? "Conectado" : "Sin conexión";
+}
+
+// ─────────────────────────────────────────────
+//  EXPORT CSV
+// ─────────────────────────────────────────────
+function exportCSV() {
+  if (!_data || !_data.registros) return;
+  const headers = ["Fecha","Hora","Asesor","Sala","Extension","Origen","Destino","Duracion_seg","Estado","Tipo"];
+  const rows = _data.registros.map(r =>
+    [r.fecha,r.hora,r.asesor,r.sala,r.extension,r.origen,r.destino,r.duracion,r.estado,r.tipoLlamada].join(",")
+  );
+  const blob = new Blob([headers.join(",") + "\n" + rows.join("\n")], { type:"text/csv" });
+  const a    = document.createElement("a");
+  a.href     = URL.createObjectURL(blob);
+  a.download = "CDR_Oikos_" + new Date().toISOString().split("T")[0] + ".csv";
+  a.click();
+}
+
+// ─────────────────────────────────────────────
+//  UTILITIES
+// ─────────────────────────────────────────────
+function pct(n, d) { return d > 0 ? Math.round((n/d)*100) : 0; }
+
+const EXTENSIONES_CONOCIDAS = [
+  "1574","1206","1585","1803","1595","1593","1569","1594",
+  "1802","1715","1572","1592","1801","1596","1345","1800",
+  "1804","1590","8000"
+];
+
+// ─────────────────────────────────────────────
+//  MINI SVG ICONS
+// ─────────────────────────────────────────────
+const SVG = (p) => `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" style="width:16px;height:16px">${p}</svg>`;
+const iconPhone   = SVG(`<path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z"/>`);
+const iconCheck   = SVG(`<path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/>`);
+const iconX       = SVG(`<path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>`);
+const iconZap     = SVG(`<path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"/>`);
+const iconInbound = SVG(`<path stroke-linecap="round" stroke-linejoin="round" d="M19.5 4.5l-15 15M19.5 19.5H4.5V4.5"/>`);
+const iconClock   = SVG(`<path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/>`);
+const iconAlert   = SVG(`<path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/>`);
+const iconWarn    = SVG(`<path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/>`);
+const iconInfo    = SVG(`<path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"/>`);
+
+// spin CSS (para botón actualizar)
+const style = document.createElement("style");
+style.textContent = "@keyframes spin { to { transform: rotate(360deg); } }";
+document.head.appendChild(style);
+</script>
+</body>
+</html>
