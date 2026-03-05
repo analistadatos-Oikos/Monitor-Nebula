@@ -653,9 +653,9 @@ select.inp { cursor:pointer; }
 ════════════════════════════════════════════════ -->
 <script>
 // ──────────────────────────────────────────────
-// CONFIGURACIÓN — reemplaza con tu URL de Apps Script
+// CONFIGURACIÓN — Aquí va tu enlace de Apps Script, parce
 // ──────────────────────────────────────────────
-const API = "https://script.google.com/macros/s/AKfycbyfS0ZGj2OxKC6RBwkjSQjX4TgsQ327Xavx7lkwoB1lEDLlL3sg9WOPdeqoW_16EUDY/exec";
+const API = "https://script.google.com/macros/s/AKfycbxM5iFiDGKDsqaOQeh1vxx71Rs2qs3me3cavvNGwQEWIc8sN1e4ICcnaIziHib8Z7tB/exec";
 
 // ── Umbrales Call Center ──────────────────────
 const CFG = {
@@ -688,7 +688,7 @@ function setTodayDates() {
 }
 
 // ─────────────────────────────────────────────
-//  FETCH
+//  FETCH (el corazón de los "apps screeks")
 // ─────────────────────────────────────────────
 async function fetchData() {
   const desde  = document.getElementById("f-desde").value;
