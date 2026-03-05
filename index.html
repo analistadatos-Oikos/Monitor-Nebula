@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=DM+Mono:wght@400;500&display=swap"/>
 <style>
+/* ... (Aquí va todo el CSS que tenías antes, sin cambios) ... */
 /* ═══════════════════════════════════════════════════
    TOKENS & RESET
 ═══════════════════════════════════════════════════ */
@@ -649,13 +650,16 @@ select.inp { cursor:pointer; }
 </div><!-- /shell -->
 
 <!-- ════════════════════════════════════════════════
-     JAVASCRIPT
+     JAVASCRIPT (AHORA CONECTADO A TU HOJA)
 ════════════════════════════════════════════════ -->
 <script>
 // ──────────────────────────────────────────────
-// CONFIGURACIÓN — Aquí va tu enlace de Apps Script, parce
+// CONFIGURACIÓN — Aquí va tu hoja de Google Sheets, parce
 // ──────────────────────────────────────────────
-const API = "https://script.google.com/macros/s/AKfycbxM5iFiDGKDsqaOQeh1vxx71Rs2qs3me3cavvNGwQEWIc8sN1e4ICcnaIziHib8Z7tB/exec";
+const SHEET_ID = "1PpS6fKYqhedTMvdm7Y-LTnNwfKfksXwkmadNiELqvvI";
+const SHEET_NAME = "DB_DASHBOARD";
+// Esta es la API que convierte la hoja en JSON
+const API = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${SHEET_NAME}`;
 
 // ── Umbrales Call Center ──────────────────────
 const CFG = {
@@ -688,7 +692,7 @@ function setTodayDates() {
 }
 
 // ─────────────────────────────────────────────
-//  FETCH (el corazón de los "apps screeks")
+//  FETCH (AHORA CON LOS DATOS DE TU HOJA)
 // ─────────────────────────────────────────────
 async function fetchData() {
   const desde  = document.getElementById("f-desde").value;
@@ -697,26 +701,157 @@ async function fetchData() {
   const tipo   = document.getElementById("f-tipo").value;
   const estado = document.getElementById("f-estado").value;
 
+  // Construir URL con filtros (opcional, la API de GSheets no filtra fácil, lo haremos después)
   let url = API;
-  const params = new URLSearchParams();
-  if (desde)  params.set("desde",  desde);
-  if (hasta)  params.set("hasta",  hasta);
-  if (sala)   params.set("sala",   sala);
-  if (tipo)   params.set("tipo",   tipo);
-  if (estado) params.set("estado", estado);
-  if ([...params].length) url += "?" + params.toString();
 
   try {
     const res  = await fetch(url, { cache: "no-store" });
-    const json = await res.json();
-    _data = json;
+    const text = await res.text();
+    // La respuesta de Google viene como "google.visualization.Query.setResponse(**AQUI_EL_JSON**);"
+    const jsonText = text.substring(47, text.length-2);
+    const json = JSON.parse(jsonText);
+    
+    // Transformar los datos de la tabla al formato que el dashboard espera
+    const rows = json.table.rows;
+    const cols = json.table.cols;
+    
+    // Mapear las filas a objetos basados en los encabezados de tu hoja
+    const registros = rows.map(row => {
+      let obj = {};
+      row.c.forEach((cell, index) => {
+        let colName = cols[index].label;
+        obj[colName] = cell ? cell.v : null;
+      });
+      return obj;
+    });
+
+    // Transformar los nombres de las columnas a lo que el dashboard entiende
+    const dataTransformada = transformarDatosHoja(registros);
+    
+    // Aplicar filtros localmente
+    const dataFiltrada = aplicarFiltros(dataTransformada, { desde, hasta, sala, tipo, estado });
+    
+    // Calcular resúmenes y estructura para el dashboard
+    _data = procesarDataParaDashboard(dataFiltrada);
+    
     setOnline(true);
     render();
   } catch(e) {
     setOnline(false);
-    showAlerts([{ tipo:"danger", txt:"Error de conexión con la API. Reintentando…" }]);
+    showAlerts([{ tipo:"danger", txt:"Error de conexión con la hoja de cálculo. Revisa que sea pública." }]);
     console.error("Fetch error:", e);
   }
+}
+
+// Función para traducir las columnas de tu hoja al formato del dashboard
+function transformarDatosHoja(rows) {
+  return rows.map(r => {
+    // Manejo de fechas (asumiendo que FECHA viene como string "16/1/2026 09:06:25 AM" o similar)
+    let fechaHora = r.FECHA || "";
+    let fechaPart = fechaHora.split(' ')[0] || "";
+    let horaPart = fechaHora.split(' ')[1] + " " + (fechaHora.split(' ')[2] || "") || "";
+    
+    // Asegurar formato de duración como número
+    let duracion = parseInt(r.DURACIÓN) || 0;
+    
+    return {
+      fecha: fechaPart,
+      hora: horaPart,
+      asesor: r.ASESOR || "SIN ESTABLECER",
+      cargo: r.CARGO || "SIN ESTABLECER",
+      extension: r.EXTENS ? r.EXTENS.toString() : "N/A",
+      origen: r.ORIGEN || "",
+      destino: r.DESTINO || "",
+      duracion: duracion,
+      estado: r.ESTADO || "DESCONOCIDO",
+      tipoLlamada: r.TIPO_LLAMO || "DESCONOCIDO",
+      sala: r.SALLA || "DESCONOCIDA",
+      idUnico: r.ID_UNICOD ? r.ID_UNICOD.toString() : "",
+      tsUnix: r.TS_UNICOD ? parseInt(r.TS_UNICOD) : 0,
+      conteoId: r.CONTEC ? parseInt(r.CONTEC) : 0,
+      saltoSeg: r.SALTO ? parseInt(r.SALTO) : 0,
+      tiempolibreSeg: r.TIEMPO ? parseInt(r.TIEMPO) : 0,
+      alerta: r.ALEGRA || ""
+    };
+  });
+}
+
+function aplicarFiltros(data, filtros) {
+  return data.filter(reg => {
+    if (filtros.desde && reg.fecha && reg.fecha.replace(/\//g,'-') !== filtros.desde) return false;
+    if (filtros.hasta && reg.fecha && reg.fecha.replace(/\//g,'-') !== filtros.hasta) return false;
+    if (filtros.sala && reg.sala && reg.sala !== filtros.sala) return false;
+    if (filtros.tipo && reg.tipoLlamada && reg.tipoLlamada !== filtros.tipo) return false;
+    if (filtros.estado && reg.estado && reg.estado !== filtros.estado) return false;
+    return true;
+  });
+}
+
+function procesarDataParaDashboard(registros) {
+  // Resumen general
+  let resumen = {
+    total: registros.length,
+    answered: registros.filter(r => r.estado === "ANSWERED").length,
+    noAnswer: registros.filter(r => r.estado === "NO ANSWER").length,
+    busy: registros.filter(r => r.estado === "BUSY").length,
+    failed: registros.filter(r => r.estado === "FAILED").length,
+    inbound: registros.filter(r => r.tipoLlamada === "INBOUND").length,
+    outbound: registros.filter(r => r.tipoLlamada === "OUTBOUND").length,
+    interna: registros.filter(r => r.tipoLlamada === "INTERNA").length,
+    duracionPromedioSeg: 0,
+    efectividad: 0
+  };
+
+  // Duración promedio (solo atendidas)
+  const atendidas = registros.filter(r => r.estado === "ANSWERED");
+  const sumaDuracion = atendidas.reduce((acc, r) => acc + (r.duracion || 0), 0);
+  resumen.duracionPromedioSeg = atendidas.length > 0 ? Math.round(sumaDuracion / atendidas.length) : 0;
+  resumen.efectividad = resumen.total > 0 ? Math.round((resumen.answered / resumen.total) * 100) : 0;
+
+  // Resumen por extensión/asesor
+  const extMap = new Map();
+  registros.forEach(r => {
+    let key = r.extension || "N/A";
+    if (!extMap.has(key)) {
+      extMap.set(key, {
+        extension: key,
+        asesor: r.asesor,
+        sala: r.sala,
+        total: 0,
+        answered: 0,
+        noAnswer: 0,
+        busy: 0,
+        failed: 0,
+        durPromExt: 0,
+        duraciones: []
+      });
+    }
+    let ext = extMap.get(key);
+    ext.total++;
+    if (r.estado === "ANSWERED") {
+      ext.answered++;
+      if (r.duracion > 0) ext.duraciones.push(r.duracion);
+    } else if (r.estado === "NO ANSWER") ext.noAnswer++;
+    else if (r.estado === "BUSY") ext.busy++;
+    else if (r.estado === "FAILED") ext.failed++;
+  });
+
+  // Calcular efectividad y duración promedio por extensión
+  const resumenPorExtension = Array.from(extMap.values()).map(ext => {
+    ext.efectividad = ext.total > 0 ? Math.round((ext.answered / ext.total) * 100) : 0;
+    ext.durPromExt = ext.duraciones.length > 0 
+      ? Math.round(ext.duraciones.reduce((a,b) => a+b, 0) / ext.duraciones.length)
+      : 0;
+    delete ext.duraciones;
+    return ext;
+  });
+
+  return {
+    resumen,
+    resumenPorExtension,
+    registros,
+    ultimaActualizacion: new Date().toISOString()
+  };
 }
 
 function applyFiltersAndFetch() { fetchData(); }
@@ -942,11 +1077,11 @@ function renderLogTable() {
   let rows = _data.registros;
   if (q) {
     rows = rows.filter(r =>
-      r.asesor.toLowerCase().includes(q) ||
-      r.extension.includes(q) ||
-      r.origen.includes(q) ||
-      r.destino.includes(q) ||
-      r.sala.toLowerCase().includes(q)
+      (r.asesor && r.asesor.toLowerCase().includes(q)) ||
+      (r.extension && r.extension.includes(q)) ||
+      (r.origen && r.origen.includes(q)) ||
+      (r.destino && r.destino.includes(q)) ||
+      (r.sala && r.sala.toLowerCase().includes(q))
     );
   }
 
