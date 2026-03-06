@@ -1,262 +1,177 @@
-Listo, parcero. Si lo quieres **igual al dashboard original**, la forma correcta en GitHub Pages es **embebiendo tu Web App de Apps Script** (no rehacerlo desde cero con JSONP).
-
-Aquí tienes un `index.html` para GitHub Pages con una intro corta y luego carga tu dashboard real tal cual:
-
-```html
 <!doctype html>
 <html lang="es">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Argus Node · Portal</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Argus Node · Intro</title>
   <style>
     :root{
-      --bg:#0b1020;
-      --bg2:#121b31;
-      --surface:#ffffff;
-      --line:#dfe5f7;
-      --text:#0f1736;
-      --muted:#5e6796;
-      --brand:#3556d6;
-      --brand2:#6d4ff8;
-      --radius:14px;
-      --font:'Outfit',sans-serif;
+      --bg:#050505;
+      --panel:#0f0f10;
+      --line:#22242a;
+      --text:#f5f7ff;
+      --muted:#a6adbb;
+      --brand:#4f7cff;
+      --brand2:#00c2ff;
     }
-
     *{box-sizing:border-box;margin:0;padding:0}
-    html,body{height:100%}
     body{
-      font-family:var(--font);
-      background:linear-gradient(120deg,var(--bg),var(--bg2));
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      background: radial-gradient(1200px 800px at 80% -10%, #1a1a1f 0%, transparent 50%), var(--bg);
+      color:var(--text);
+      min-height:100vh;
+      display:grid;
+      place-items:center;
       overflow:hidden;
     }
-
-    .intro{
-      position:fixed;
-      inset:0;
-      z-index:20;
-      display:grid;
-      place-items:center;
-      padding:24px;
-      background:
-        radial-gradient(1000px 420px at 80% -20%, rgba(109,79,248,.25), transparent 60%),
-        radial-gradient(900px 360px at -10% 100%, rgba(53,86,214,.22), transparent 60%),
-        linear-gradient(120deg,var(--bg),var(--bg2));
-      transition:opacity .35s ease, visibility .35s ease;
-    }
-    .intro.hide{
-      opacity:0;
-      visibility:hidden;
-      pointer-events:none;
-    }
-
-    .card{
-      width:min(940px,100%);
-      background:rgba(255,255,255,.06);
-      border:1px solid rgba(255,255,255,.16);
-      border-radius:20px;
-      backdrop-filter:blur(10px);
-      color:#fff;
+    .wrap{
+      width:min(920px,92vw);
+      background:linear-gradient(180deg,#111216,#0c0d10);
+      border:1px solid var(--line);
+      border-radius:22px;
       padding:28px;
-      box-shadow:0 20px 50px rgba(0,0,0,.35);
+      box-shadow:0 25px 70px rgba(0,0,0,.45);
+      display:grid;
+      grid-template-columns:280px 1fr;
+      gap:24px;
+    }
+    .avatar-card{
+      background:#0a0b0d;
+      border:1px solid var(--line);
+      border-radius:18px;
+      padding:18px;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap:14px;
+    }
+    .avatar{
+      width:150px;height:150px;border-radius:50%;
+      background:radial-gradient(circle at 35% 30%, #6ea1ff 0%, #335dff 45%, #1b2f72 100%);
+      position:relative;
+      box-shadow:0 0 0 8px #131826, 0 10px 35px rgba(79,124,255,.35);
+    }
+    .face{
+      position:absolute; inset:24px; border-radius:50%;
+      background:linear-gradient(180deg,#ffd8b5,#f5b989);
+    }
+    .eye{position:absolute;top:62px;width:10px;height:10px;border-radius:50%;background:#1f2333}
+    .eye.left{left:53px}.eye.right{right:53px}
+    .smile{
+      position:absolute;left:50%;top:90px;transform:translateX(-50%);
+      width:34px;height:16px;border:3px solid #a9483c;border-top:none;border-radius:0 0 16px 16px;
+    }
+    .headset{
+      position:absolute;inset:10px;border:5px solid #d6e1ff;border-bottom:none;border-radius:90px 90px 0 0;
+    }
+    .mic{
+      position:absolute;right:23px;top:95px;width:34px;height:4px;background:#d6e1ff;border-radius:4px;transform:rotate(-18deg);
+    }
+    .mic::after{
+      content:"";position:absolute;right:-6px;top:-4px;width:11px;height:11px;border-radius:50%;background:#d6e1ff;
     }
 
-    .brand{
-      display:flex;align-items:center;gap:12px;margin-bottom:14px
+    .status{
+      font-size:.84rem;color:#d7def1;background:#151a26;border:1px solid #252f4a;
+      border-radius:999px;padding:7px 12px;
     }
-    .logo{
-      width:40px;height:40px;border-radius:10px;
-      display:grid;place-items:center;
-      background:rgba(255,255,255,.12);
-      border:1px solid rgba(255,255,255,.22);
-    }
-    .logo svg{width:18px;height:18px;stroke:#fff}
-    .name{font-size:1.15rem;font-weight:800;letter-spacing:.01em}
-    .sub{font-size:.68rem;opacity:.78;text-transform:uppercase;letter-spacing:.12em}
 
-    .headline{
-      font-size:2rem;line-height:1.08;font-weight:800;letter-spacing:-.02em;
-      margin:8px 0 10px;
+    .content{
+      display:flex;flex-direction:column;justify-content:center;
     }
-    .headline span{
-      background:linear-gradient(90deg,#7ea2ff,#b39bff);
+    h1{
+      font-size:clamp(1.5rem,3vw,2.4rem);
+      line-height:1.1;
+      letter-spacing:-.02em;
+      margin-bottom:10px;
+    }
+    .grad{
+      background:linear-gradient(90deg,var(--brand),var(--brand2));
       -webkit-background-clip:text;background-clip:text;color:transparent;
     }
-    .desc{
-      max-width:760px;
-      font-size:.92rem;
-      line-height:1.65;
-      color:rgba(255,255,255,.86);
-      margin-bottom:18px;
+    p{
+      color:var(--muted);
+      font-size:1.02rem;
+      line-height:1.6;
+      margin-bottom:22px;
+      max-width:54ch;
     }
-
-    .actions{
-      display:flex;gap:10px;flex-wrap:wrap
-    }
+    .actions{display:flex;gap:10px;flex-wrap:wrap}
     .btn{
-      height:40px;padding:0 16px;border-radius:10px;border:none;cursor:pointer;
-      font-family:var(--font);font-size:.85rem;font-weight:700;
-      display:inline-flex;align-items:center;gap:8px;
+      border:none;cursor:pointer;border-radius:12px;
+      padding:11px 16px;font-weight:700;font-size:.92rem;
     }
-    .btn.primary{
-      color:#fff;
-      background:linear-gradient(90deg,var(--brand),var(--brand2));
-      box-shadow:0 8px 24px rgba(53,86,214,.35);
+    .btn-main{
+      color:white;
+      background:linear-gradient(90deg,var(--brand),#5e8bff);
+      box-shadow:0 8px 24px rgba(79,124,255,.35);
     }
-    .btn.secondary{
-      color:#fff;background:rgba(255,255,255,.1);
-      border:1px solid rgba(255,255,255,.2);
+    .btn-main:hover{filter:brightness(1.06)}
+    .mini{margin-top:10px;color:#7c8598;font-size:.82rem}
+    .loader{
+      margin-top:14px;height:3px;width:240px;background:#1a1f2d;border-radius:99px;overflow:hidden;display:none;
     }
+    .loader > span{
+      display:block;height:100%;width:0;background:linear-gradient(90deg,var(--brand),var(--brand2));
+      animation:load 2.4s linear forwards;
+    }
+    @keyframes load{to{width:100%}}
 
-    .host{
-      position:fixed;inset:0;
-      background:#f2f5ff;
-      z-index:1;
-    }
-
-    .topbar{
-      height:52px;
-      display:flex;align-items:center;justify-content:space-between;
-      padding:0 14px;
-      background:#fff;
-      border-bottom:1px solid var(--line);
-      color:var(--text);
-    }
-    .tb-left{display:flex;align-items:center;gap:10px}
-    .dot{
-      width:8px;height:8px;border-radius:50%;background:#0f766e;
-      box-shadow:0 0 0 4px rgba(15,118,110,.12);
-    }
-    .tb-title{font-size:.86rem;font-weight:800}
-    .tb-sub{font-size:.72rem;color:var(--muted);font-weight:600}
-
-    .frame-wrap{
-      height:calc(100% - 52px);
-      background:#eef2ff;
-    }
-    iframe{
-      width:100%;
-      height:100%;
-      border:none;
-      background:#eef2ff;
-    }
-
-    .loading{
-      position:absolute;
-      inset:52px 0 0 0;
-      display:grid;
-      place-items:center;
-      background:#eef2ff;
-      color:#4f5d95;
-      font-size:.88rem;
-      z-index:3;
-    }
-    .loading.hide{display:none}
-
-    @media(max-width:780px){
-      .headline{font-size:1.55rem}
-      .desc{font-size:.84rem}
+    @media (max-width: 840px){
+      .wrap{grid-template-columns:1fr;padding:20px}
+      .avatar-card{padding:20px}
+      .content{text-align:center;align-items:center}
+      .actions{justify-content:center}
     }
   </style>
 </head>
 <body>
-  <!-- Intro -->
-  <section class="intro" id="intro">
-    <div class="card">
-      <div class="brand">
-        <div class="logo">
-          <svg viewBox="0 0 24 24" fill="none">
-            <path d="M4 17L10 11L14 15L20 9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M20 15V9H14" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </div>
-        <div>
-          <div class="name">Argus Node</div>
-          <div class="sub">Monitor CDR · Oikos</div>
-        </div>
+  <main class="wrap">
+    <section class="avatar-card">
+      <div class="avatar" aria-hidden="true">
+        <div class="headset"></div>
+        <div class="face"></div>
+        <span class="eye left"></span>
+        <span class="eye right"></span>
+        <span class="smile"></span>
+        <span class="mic"></span>
       </div>
+      <div class="status">Asistente Argus en línea</div>
+    </section>
 
-      <h1 class="headline">Control operativo <span>en tiempo real</span></h1>
-      <p class="desc">
-        Este portal conecta directamente con tu implementación de Apps Script para mostrar
-        el dashboard completo con filtros, gráficas, análisis rápido y generación de reportes.
+    <section class="content">
+      <h1>Hola, bienvenido a <span class="grad">Argus Node</span></h1>
+      <p>
+        Soy tu asistente virtual de monitoreo telefónico. En segundos te llevo al dashboard principal
+        para ver métricas, análisis y reportes.
       </p>
 
       <div class="actions">
-        <button class="btn primary" id="enterBtn">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="stroke:#fff">
-            <path d="M4 12H20M14 6L20 12L14 18" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          Entrar al Dashboard
-        </button>
-        <button class="btn secondary" id="openNewTabBtn">
-          Abrir en pestaña nueva
-        </button>
+        <button class="btn btn-main" id="goBtn">Entrar a Argus</button>
       </div>
-    </div>
-  </section>
 
-  <!-- Host -->
-  <main class="host">
-    <div class="topbar">
-      <div class="tb-left">
-        <span class="dot"></span>
-        <div>
-          <div class="tb-title">Argus Node · Portal GitHub</div>
-          <div class="tb-sub">Conectado a Apps Script</div>
-        </div>
-      </div>
-      <div class="tb-sub" id="statusTxt">Esperando carga…</div>
-    </div>
-
-    <div class="frame-wrap">
-      <div class="loading" id="loading">Cargando dashboard…</div>
-      <iframe
-        id="dashFrame"
-        title="Argus Node Dashboard"
-        loading="eager"
-        referrerpolicy="no-referrer"
-        allow="clipboard-write"
-      ></iframe>
-    </div>
+      <div class="loader" id="loader"><span></span></div>
+      <div class="mini">Iniciando experiencia...</div>
+    </section>
   </main>
 
   <script>
-    const DASH_URL = "https://script.google.com/macros/s/AKfycbyu2xRKnegY2nUFh7RkqXFJWfjRxoSEEkpd7M9x2tyzxaufl0-_FpaZ_lQT6M4CdW75/exec";
+    const ARGUS_URL = "https://script.google.com/macros/s/AKfycbyu2xRKnegY2nUFh7RkqXFJWfjRxoSEEkpd7M9x2tyzxaufl0-_FpaZ_lQT6M4CdW75/exec";
+    const goBtn = document.getElementById("goBtn");
+    const loader = document.getElementById("loader");
 
-    const intro = document.getElementById("intro");
-    const frame = document.getElementById("dashFrame");
-    const loading = document.getElementById("loading");
-    const statusTxt = document.getElementById("statusTxt");
-
-    function loadDashboard() {
-      statusTxt.textContent = "Conectando…";
-      frame.src = DASH_URL;
+    function goArgus(){
+      loader.style.display = "block";
+      goBtn.disabled = true;
+      goBtn.textContent = "Abriendo Argus...";
+      setTimeout(() => { window.location.href = ARGUS_URL; }, 900);
     }
 
-    document.getElementById("enterBtn").addEventListener("click", () => {
-      intro.classList.add("hide");
-      loadDashboard();
-    });
+    goBtn.addEventListener("click", goArgus);
 
-    document.getElementById("openNewTabBtn").addEventListener("click", () => {
-      window.open(DASH_URL, "_blank", "noopener,noreferrer");
-    });
-
-    frame.addEventListener("load", () => {
-      loading.classList.add("hide");
-      statusTxt.textContent = "Dashboard activo";
-    });
-
-    // Auto-cargar después de 1s si no tocan botón
-    setTimeout(() => {
-      if (!intro.classList.contains("hide")) {
-        intro.classList.add("hide");
-        loadDashboard();
-      }
-    }, 1000);
+    // Auto-redirección (opcional)
+    setTimeout(goArgus, 3500);
   </script>
 </body>
 </html>
