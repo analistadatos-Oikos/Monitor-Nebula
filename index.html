@@ -1,100 +1,262 @@
+Listo, parcero. Si lo quieres **igual al dashboard original**, la forma correcta en GitHub Pages es **embebiendo tu Web App de Apps Script** (no rehacerlo desde cero con JSONP).
+
+Aquí tienes un `index.html` para GitHub Pages con una intro corta y luego carga tu dashboard real tal cual:
+
+```html
 <!doctype html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Argus Node · GitHub Client</title>
+  <title>Argus Node · Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
-    body{font-family:Arial,sans-serif;background:#f6f8ff;color:#0f1736;padding:20px}
-    .card{background:#fff;border:1px solid #dfe6fb;border-radius:10px;padding:14px;margin-bottom:12px}
-    .row{display:flex;gap:8px;flex-wrap:wrap}
-    input,select,button{height:34px;padding:0 10px;border:1px solid #ccd7fb;border-radius:8px}
-    button{cursor:pointer;background:#3556d6;color:#fff;border-color:#3556d6}
-    pre{background:#0b1020;color:#e2e8ff;padding:12px;border-radius:8px;overflow:auto}
-    .kpi{font-size:24px;font-weight:700}
+    :root{
+      --bg:#0b1020;
+      --bg2:#121b31;
+      --surface:#ffffff;
+      --line:#dfe5f7;
+      --text:#0f1736;
+      --muted:#5e6796;
+      --brand:#3556d6;
+      --brand2:#6d4ff8;
+      --radius:14px;
+      --font:'Outfit',sans-serif;
+    }
+
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%}
+    body{
+      font-family:var(--font);
+      background:linear-gradient(120deg,var(--bg),var(--bg2));
+      overflow:hidden;
+    }
+
+    .intro{
+      position:fixed;
+      inset:0;
+      z-index:20;
+      display:grid;
+      place-items:center;
+      padding:24px;
+      background:
+        radial-gradient(1000px 420px at 80% -20%, rgba(109,79,248,.25), transparent 60%),
+        radial-gradient(900px 360px at -10% 100%, rgba(53,86,214,.22), transparent 60%),
+        linear-gradient(120deg,var(--bg),var(--bg2));
+      transition:opacity .35s ease, visibility .35s ease;
+    }
+    .intro.hide{
+      opacity:0;
+      visibility:hidden;
+      pointer-events:none;
+    }
+
+    .card{
+      width:min(940px,100%);
+      background:rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.16);
+      border-radius:20px;
+      backdrop-filter:blur(10px);
+      color:#fff;
+      padding:28px;
+      box-shadow:0 20px 50px rgba(0,0,0,.35);
+    }
+
+    .brand{
+      display:flex;align-items:center;gap:12px;margin-bottom:14px
+    }
+    .logo{
+      width:40px;height:40px;border-radius:10px;
+      display:grid;place-items:center;
+      background:rgba(255,255,255,.12);
+      border:1px solid rgba(255,255,255,.22);
+    }
+    .logo svg{width:18px;height:18px;stroke:#fff}
+    .name{font-size:1.15rem;font-weight:800;letter-spacing:.01em}
+    .sub{font-size:.68rem;opacity:.78;text-transform:uppercase;letter-spacing:.12em}
+
+    .headline{
+      font-size:2rem;line-height:1.08;font-weight:800;letter-spacing:-.02em;
+      margin:8px 0 10px;
+    }
+    .headline span{
+      background:linear-gradient(90deg,#7ea2ff,#b39bff);
+      -webkit-background-clip:text;background-clip:text;color:transparent;
+    }
+    .desc{
+      max-width:760px;
+      font-size:.92rem;
+      line-height:1.65;
+      color:rgba(255,255,255,.86);
+      margin-bottom:18px;
+    }
+
+    .actions{
+      display:flex;gap:10px;flex-wrap:wrap
+    }
+    .btn{
+      height:40px;padding:0 16px;border-radius:10px;border:none;cursor:pointer;
+      font-family:var(--font);font-size:.85rem;font-weight:700;
+      display:inline-flex;align-items:center;gap:8px;
+    }
+    .btn.primary{
+      color:#fff;
+      background:linear-gradient(90deg,var(--brand),var(--brand2));
+      box-shadow:0 8px 24px rgba(53,86,214,.35);
+    }
+    .btn.secondary{
+      color:#fff;background:rgba(255,255,255,.1);
+      border:1px solid rgba(255,255,255,.2);
+    }
+
+    .host{
+      position:fixed;inset:0;
+      background:#f2f5ff;
+      z-index:1;
+    }
+
+    .topbar{
+      height:52px;
+      display:flex;align-items:center;justify-content:space-between;
+      padding:0 14px;
+      background:#fff;
+      border-bottom:1px solid var(--line);
+      color:var(--text);
+    }
+    .tb-left{display:flex;align-items:center;gap:10px}
+    .dot{
+      width:8px;height:8px;border-radius:50%;background:#0f766e;
+      box-shadow:0 0 0 4px rgba(15,118,110,.12);
+    }
+    .tb-title{font-size:.86rem;font-weight:800}
+    .tb-sub{font-size:.72rem;color:var(--muted);font-weight:600}
+
+    .frame-wrap{
+      height:calc(100% - 52px);
+      background:#eef2ff;
+    }
+    iframe{
+      width:100%;
+      height:100%;
+      border:none;
+      background:#eef2ff;
+    }
+
+    .loading{
+      position:absolute;
+      inset:52px 0 0 0;
+      display:grid;
+      place-items:center;
+      background:#eef2ff;
+      color:#4f5d95;
+      font-size:.88rem;
+      z-index:3;
+    }
+    .loading.hide{display:none}
+
+    @media(max-width:780px){
+      .headline{font-size:1.55rem}
+      .desc{font-size:.84rem}
+    }
   </style>
 </head>
 <body>
-  <div class="card">
-    <h2>Argus Node desde GitHub Pages</h2>
-    <div class="row">
-      <button onclick="cargarDashboard()">Cargar Dashboard</button>
-    </div>
-    <div style="margin-top:10px">
-      <div>Total llamadas: <span class="kpi" id="kTotal">-</span></div>
-      <div>Efectividad: <span id="kEff">-</span></div>
-      <div>Atendidas: <span id="kAns">-</span></div>
-    </div>
-  </div>
+  <!-- Intro -->
+  <section class="intro" id="intro">
+    <div class="card">
+      <div class="brand">
+        <div class="logo">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M4 17L10 11L14 15L20 9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M20 15V9H14" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div>
+          <div class="name">Argus Node</div>
+          <div class="sub">Monitor CDR · Oikos</div>
+        </div>
+      </div>
 
-  <div class="card">
-    <h3>Probar Proxy</h3>
-    <div class="row">
-      <input id="url" style="min-width:420px" value="https://api.github.com/repos/octocat/Hello-World" />
-      <button onclick="probarProxy()">Llamar Proxy</button>
+      <h1 class="headline">Control operativo <span>en tiempo real</span></h1>
+      <p class="desc">
+        Este portal conecta directamente con tu implementación de Apps Script para mostrar
+        el dashboard completo con filtros, gráficas, análisis rápido y generación de reportes.
+      </p>
+
+      <div class="actions">
+        <button class="btn primary" id="enterBtn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="stroke:#fff">
+            <path d="M4 12H20M14 6L20 12L14 18" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Entrar al Dashboard
+        </button>
+        <button class="btn secondary" id="openNewTabBtn">
+          Abrir en pestaña nueva
+        </button>
+      </div>
     </div>
-    <pre id="out">Sin datos</pre>
-  </div>
+  </section>
+
+  <!-- Host -->
+  <main class="host">
+    <div class="topbar">
+      <div class="tb-left">
+        <span class="dot"></span>
+        <div>
+          <div class="tb-title">Argus Node · Portal GitHub</div>
+          <div class="tb-sub">Conectado a Apps Script</div>
+        </div>
+      </div>
+      <div class="tb-sub" id="statusTxt">Esperando carga…</div>
+    </div>
+
+    <div class="frame-wrap">
+      <div class="loading" id="loading">Cargando dashboard…</div>
+      <iframe
+        id="dashFrame"
+        title="Argus Node Dashboard"
+        loading="eager"
+        referrerpolicy="no-referrer"
+        allow="clipboard-write"
+      ></iframe>
+    </div>
+  </main>
 
   <script>
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbyu2xRKnegY2nUFh7RkqXFJWfjRxoSEEkpd7M9x2tyzxaufl0-_FpaZ_lQT6M4CdW75/exec";
+    const DASH_URL = "https://script.google.com/macros/s/AKfycbyu2xRKnegY2nUFh7RkqXFJWfjRxoSEEkpd7M9x2tyzxaufl0-_FpaZ_lQT6M4CdW75/exec";
 
-    function gasJsonp(params = {}) {
-      return new Promise((resolve, reject) => {
-        const cb = "__cb_" + Date.now() + "_" + Math.floor(Math.random() * 1e6);
-        params.callback = cb;
+    const intro = document.getElementById("intro");
+    const frame = document.getElementById("dashFrame");
+    const loading = document.getElementById("loading");
+    const statusTxt = document.getElementById("statusTxt");
 
-        const q = new URLSearchParams(params).toString();
-        const src = GAS_URL + "?" + q;
-        const s = document.createElement("script");
-
-        let done = false;
-        const clean = () => {
-          if (done) return;
-          done = true;
-          delete window[cb];
-          s.remove();
-        };
-
-        window[cb] = (data) => { clean(); resolve(data); };
-        s.onerror = () => { clean(); reject(new Error("JSONP error")); };
-
-        s.src = src;
-        document.body.appendChild(s);
-
-        setTimeout(() => {
-          if (!done) { clean(); reject(new Error("Timeout JSONP")); }
-        }, 15000);
-      });
+    function loadDashboard() {
+      statusTxt.textContent = "Conectando…";
+      frame.src = DASH_URL;
     }
 
-    async function cargarDashboard() {
-      try {
-        const res = await gasJsonp({ action: "dashboard" });
-        if (!res.success) throw new Error(res.error || "Error dashboard");
-        document.getElementById("kTotal").textContent = res.resumen?.total ?? "-";
-        document.getElementById("kEff").textContent   = (res.resumen?.eff ?? "-") + "%";
-        document.getElementById("kAns").textContent   = res.resumen?.answered ?? "-";
-      } catch (e) {
-        alert("Error: " + e.message);
+    document.getElementById("enterBtn").addEventListener("click", () => {
+      intro.classList.add("hide");
+      loadDashboard();
+    });
+
+    document.getElementById("openNewTabBtn").addEventListener("click", () => {
+      window.open(DASH_URL, "_blank", "noopener,noreferrer");
+    });
+
+    frame.addEventListener("load", () => {
+      loading.classList.add("hide");
+      statusTxt.textContent = "Dashboard activo";
+    });
+
+    // Auto-cargar después de 1s si no tocan botón
+    setTimeout(() => {
+      if (!intro.classList.contains("hide")) {
+        intro.classList.add("hide");
+        loadDashboard();
       }
-    }
-
-    async function probarProxy() {
-      const url = document.getElementById("url").value.trim();
-      const out = document.getElementById("out");
-      out.textContent = "Consultando...";
-      try {
-        const res = await gasJsonp({
-          action: "proxy",
-          method: "GET",
-          url: url
-        });
-        out.textContent = JSON.stringify(res, null, 2);
-      } catch (e) {
-        out.textContent = "Error: " + e.message;
-      }
-    }
+    }, 1000);
   </script>
 </body>
 </html>
