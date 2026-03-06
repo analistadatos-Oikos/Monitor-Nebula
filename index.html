@@ -7,7 +7,6 @@
   <style>
     :root{
       --bg:#040507;
-      --panel:#0b0f16;
       --line:#1a2433;
       --txt:#eaf1ff;
       --muted:#90a0bc;
@@ -24,7 +23,22 @@
       overflow:hidden;
     }
 
-    /* Intro */
+    /* Dashboard embebido */
+    #app{
+      position:fixed; inset:0;
+      opacity:0;
+      transition:opacity .55s ease;
+      background:#0a0d14;
+    }
+    #app.show{opacity:1}
+    #app iframe{
+      width:100%;
+      height:100%;
+      border:none;
+      background:#0a0d14;
+    }
+
+    /* Intro overlay */
     #intro{
       position:fixed; inset:0;
       display:grid; place-items:center;
@@ -32,8 +46,12 @@
         radial-gradient(900px 500px at 80% -10%, rgba(63,87,213,.24), transparent 60%),
         radial-gradient(700px 450px at 10% 110%, rgba(0,183,255,.12), transparent 60%),
         #040507;
-      z-index:20;
+      z-index:10;
+      opacity:1;
+      visibility:visible;
+      transition:opacity .55s ease, visibility .55s ease;
     }
+    #intro.hide{opacity:0; visibility:hidden}
 
     .card{
       width:min(900px,92vw);
@@ -161,6 +179,10 @@
   </style>
 </head>
 <body>
+  <main id="app">
+    <iframe id="argusFrame" title="Argus Node"></iframe>
+  </main>
+
   <section id="intro">
     <div class="card">
       <div class="phone-wrap">
@@ -181,17 +203,42 @@
 
         <div class="status"><span class="dot"></span><span>Preparando entorno</span></div>
         <div class="bar"><span></span></div>
-        <div class="mini">Cargando interfaz...</div>
+        <div class="mini" id="miniText">Cargando interfaz...</div>
       </div>
     </div>
   </section>
 
   <script>
     const ARGUS_URL = "https://script.google.com/macros/s/AKfycbyu2xRKnegY2nUFh7RkqXFJWfjRxoSEEkpd7M9x2tyzxaufl0-_FpaZ_lQT6M4CdW75/exec";
+    const frame = document.getElementById("argusFrame");
+    const intro = document.getElementById("intro");
+    const app = document.getElementById("app");
+    const miniText = document.getElementById("miniText");
 
+    let done = false;
+
+    function showDashboard() {
+      if (done) return;
+      done = true;
+      app.classList.add("show");
+      intro.classList.add("hide");
+    }
+
+    // Si carga rápido: transición limpia, sin negro
+    frame.addEventListener("load", () => {
+      setTimeout(showDashboard, 180);
+    });
+
+    // Fallback de mensaje si demora
     setTimeout(() => {
-      window.location.replace(ARGUS_URL);
-    }, 3400);
+      if (!done) miniText.textContent = "Conectando al panel, espera un momento...";
+    }, 3500);
+
+    // Carga embebida (mismo link de GitHub, no redirección de pestaña)
+    frame.src = ARGUS_URL;
+
+    // Fallback final por si no llega evento load
+    setTimeout(showDashboard, 9000);
   </script>
 </body>
 </html>
